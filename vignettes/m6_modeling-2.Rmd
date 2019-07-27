@@ -1,6 +1,6 @@
 ---
 title: "Unsupervised learning"
-author: "Muhammad Aswan Syahputra"
+author: "Muhammad Ariq Naufal"
 output: github_document
 ---
 
@@ -19,26 +19,28 @@ Anda mungkin sudah terbiasa membaca narasi teks, seperti artikel, cerita pendek,
 Dalam studi kasus ini kita akan melakukan pemodelan topic (*topic modeling*) untuk mengkategorikan topik dari buku cerita. Kita akan menggunakan beberapa paket untuk melakukan hal tersebut, diantaranya adalah `tidytext` dan `topicmodels`. Selain kedua paket tersebut aktifkanlah juga paket `vroom`, `here`, `dplyr`, dan `ggplot2`!
 
 ```{r}
-___
-___
-___
-___
-___
-___
+library(tidytext)
+library(topicmodels)
+library(vroom)
+library(here)
+library(dplyr)
+library(ggplot2)
 ```
 
 Pada subdirektori "data-raw" terdapat berkas bernama "sherlock.csv". Imporlah berkas tersebut menjadi obyek R bernama `sherlock`. Ya! Kita akan melakukan pengkategorian topik buku "The Adventures of Sherlock Holmes" karya Arthur Conan Doyle. Apakah Anda tertarik? Jangan lupa untuk melakukan inspeksi terhadap data `sherlock` tersebut.
 
 ```{r}
-sherlock <- vroom(here("data-raw", "___"))
-___
+sherlock <- vroom(here("data-raw", "sherlock.csv"))
+head(sherlock)
 ```
 
 Data `sherlock` tersebut berisi kolom "story" yang merupakan subcerita dari cerita keseluruhan dan kolom "text" yang merupakan naskah cerita pada setiap baris.
 Sekarang kita akan melakukan transformasi data untuk mencatat kata apa saja yang muncul untuk setiap subcerita. Jalankan *chunk* berikut dan simpanlah hasilnya sebagai obyek R bernama `sherlock_tidy`! 
 
+stop word untuk memfilter bahasa
+
 ```{r}
-___ <- sherlock %>% 
+sherlock_tidy <- sherlock %>% 
   filter(!is.na(text)) %>% 
   group_by(story) %>%
   unnest_tokens(word, text) %>%
@@ -54,13 +56,13 @@ Anda dapat menghitung frekuensi penggunaan kata untuk setiap subcerita dengan me
 
 ```{r}
 sherlock_tidy %>% 
-  count(story, word, ___)
+  count(story, word, sort = TRUE)
 ```
 
 Selanjutnya Anda dapat dapat mengetahui kata penting apa yang terdapat dapat suatu subcerita dengan menggunakan analisis Term Frequency - Inverse Document Frequency (tf-idf). Fungsi `bind_tf_idf()` dapat dimanfaatkan untuk melakukan hal tersebut. Simpanlah hasil keluaran fungsi tersebut dalam obyek bernama `sherlock_tfidf` dan cetaklah hasilnya pada layar!
 
 ```{r}
-___ <- sherlock_tidy %>% 
+sherlock_tfidf <- sherlock_tidy %>% 
   count(story, word, sort = TRUE) %>% 
   bind_tf_idf(word, story, n)
 
@@ -71,7 +73,7 @@ sherlock_tfidf
 
 ```{r}
 sherlock_tfidf %>% 
-  filter(story == "ADVENTURE I. A SCANDAL IN BOHEMIA") %>% 
+  filter(story == "ADVENTURE II. THE RED-HEADED LEAGUE") %>% 
   top_n(15, tf_idf) %>% 
   ggplot(aes(x = reorder(word, tf_idf), y = tf_idf)) +
   geom_col() +
@@ -80,7 +82,7 @@ sherlock_tfidf %>%
     x = "",
     y = "tf-idf",
     title = "Kata terpenting pada cerita Sherlock Holmes",
-    subtitle = "Subcerita 'Adventure I. A Scandal in Bohemia'"
+    subtitle = "Subcerita 'ADVENTURE II. THE RED-HEADED LEAGUE'"
   ) +
   theme_light()
 ```
@@ -88,12 +90,37 @@ sherlock_tfidf %>%
 Pilihlah dua subcerita lain dan buatlah grafik serupa!
 
 ```{r}
-
+sherlock_tfidf %>% 
+  group_by(story) %>% 
+  top_n(5, tf_idf) %>% 
+  ggplot(aes(x = reorder(word, tf_idf), y = tf_idf)) +
+  geom_col() +
+  coord_flip() +
+  labs(
+    x = "",
+    y = "tf-idf",
+    title = "Kata terpenting pada cerita Sherlock Holmes",
+    subtitle = "Subcerita 'VIII. THE ADVENTURE OF THE SPECKLED BAND'"
+  ) +
+  theme_minimal() +
+  facet_wrap(~story,scales = "free")
 ```
 
 
 ```{r}
-
+sherlock_tfidf %>% 
+  filter(story == "XII. THE ADVENTURE OF THE COPPER BEECHES") %>% 
+  top_n(15, tf_idf) %>% 
+  ggplot(aes(x = reorder(word, tf_idf), y = tf_idf)) +
+  geom_col() +
+  coord_flip() +
+  labs(
+    x = "",
+    y = "tf-idf",
+    title = "Kata terpenting pada cerita Sherlock Holmes",
+    subtitle = "Subcerita XII. THE ADVENTURE OF THE COPPER BEECHES"
+  ) +
+  theme_minimal()
 ```
 
 Berdasarkan analisis tf-idf di atas kita dapat melihat bahwa masih banyak kata yang merupakan nama tokoh dalam cerita termasuk dalam kata penting. Apakah sebaiknya kita menghapus kata-kata tersebut terlebih dahulu sebelum melakukan pemodelan topik?
@@ -156,15 +183,52 @@ sherlock_beta %>%
 Dapatkah Anda membuat visualisasi untuk `sherlock_beta`? Buatlah visualisasi untuk setidaknya 3 topik! (Petunjuk: baris kode serupa dengan kode untuk membuat visualisasi `sherlock_tfidf`)
 
 ```{r}
-
+sherlock_beta %>% 
+  group_by(topic) %>% 
+  top_n(5, beta) %>% 
+  ggplot(aes(x = reorder(word, beta), y = beta)) +
+  geom_col() +
+  coord_flip() +
+  labs(
+    x = "",
+    y = "beta",
+    title = "Kata terpenting pada cerita Sherlock Holmes",
+    subtitle = "Subcerita XII. THE ADVENTURE OF THE COPPER BEECHES"
+  ) +
+  theme_minimal()+
+  facet_wrap(~topic,scales = "free")
 ```
 
 ```{r}
-
+sherlock_beta %>% 
+  filter(topic == 2) %>% 
+  top_n(15, beta) %>% 
+  ggplot(aes(x = reorder(word, beta), y = beta)) +
+  geom_col() +
+  coord_flip() +
+  labs(
+    x = "",
+    y = "beta",
+    title = "Kata terpenting pada cerita Sherlock Holmes",
+    subtitle = "Subcerita XII. THE ADVENTURE OF THE COPPER BEECHES"
+  ) +
+  theme_minimal()
 ```
 
 ```{r}
-
+sherlock_beta %>% 
+  filter(topic == 5) %>% 
+  top_n(15, beta) %>% 
+  ggplot(aes(x = reorder(word, beta), y = beta)) +
+  geom_col() +
+  coord_flip() +
+  labs(
+    x = "",
+    y = "beta",
+    title = "Kata terpenting pada cerita Sherlock Holmes",
+    subtitle = "Subcerita XII. THE ADVENTURE OF THE COPPER BEECHES"
+  ) +
+  theme_minimal()
 ```
 
 
